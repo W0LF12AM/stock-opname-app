@@ -9,6 +9,9 @@ import 'services/db_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  print('==================================================');
+  print('DEBUG MAIN: App dimulai! Kode terbaru sudah berjalan.');
+  print('==================================================');
   // Pre-warm the SQLite database before any widget tries to use it.
   // This prevents the first DB open from blocking widget initialization.
   await DBService().database;

@@ -25,7 +25,9 @@ class _SyncScreenState extends State<SyncScreen> {
   }
 
   Future<void> _handleSync(BuildContext context, SyncProvider sync) async {
+    print('DEBUG SCREEN: Tombol sinkronisasi diklik untuk Vessel ID: ${widget.vessel.id}. Memulai sinkronisasi...');
     final allSuccess = await sync.syncVesselAdjustments(widget.vessel.id);
+    print('DEBUG SCREEN: Hasil sinkronisasi allSuccess = $allSuccess');
     
     if (mounted) {
       if (allSuccess) {
@@ -157,7 +159,7 @@ class _SyncScreenState extends State<SyncScreen> {
                       
                       // Sync Button (Green CTA)
                       ElevatedButton(
-                        onPressed: isOnline ? () => _handleSync(context, sync) : null,
+                        onPressed: () => _handleSync(context, sync),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2E7D32), // Green CTA
                           disabledBackgroundColor: const Color(0xFFE2E8F0),
@@ -169,7 +171,7 @@ class _SyncScreenState extends State<SyncScreen> {
                           children: [
                             const Icon(Icons.cloud_upload_rounded),
                             const SizedBox(width: 8),
-                            Text(isOnline ? 'Kirim Hasil Stock Opname' : 'Butuh Internet untuk Kirim'),
+                            Text(isOnline ? 'Kirim Hasil Stock Opname' : 'Kirim Hasil Stock Opname (Koneksi Terputus?)'),
                           ],
                         ),
                       ),

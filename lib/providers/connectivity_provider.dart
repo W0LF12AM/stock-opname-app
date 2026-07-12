@@ -24,7 +24,9 @@ class ConnectivityProvider extends ChangeNotifier {
 
   void _updateConnectionStatus(ConnectivityResult result) {
     _isOnline = result != ConnectivityResult.none;
+    print('DEBUG CONNECTIVITY: isOnline = $_isOnline (result = $result)');
     notifyListeners();
   }
 }
+
 

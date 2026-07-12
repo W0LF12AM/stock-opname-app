@@ -176,12 +176,15 @@ class SyncProvider extends ChangeNotifier {
   }
 
   Future<void> saveAdjustment(Adjustment adj) async {
+    print('DEBUG DB: Menyimpan adjustment lokal - partName: ${adj.partName}, vesselId: ${adj.vesselId}, isExisting: ${adj.isExisting}, qtyChange: ${adj.qtyChange}');
     try {
       await _db.saveAdjustment(adj);
       // Reload adjustments & inventory workspace
       _adjustments = await _db.getPendingAdjustments(adj.vesselId);
+      print('DEBUG DB: [BERHASIL] Adjustment tersimpan. Total pending untuk vessel ${adj.vesselId}: ${_adjustments.length}');
       await loadAllPendingAdjustments();
     } catch (e) {
+      print('DEBUG DB: [GAGAL] Gagal menyimpan adjustment: $e');
       _errorMessage = 'Gagal menyimpan penyesuaian: ${e.toString()}';
       notifyListeners();
       rethrow;
@@ -290,25 +293,32 @@ class SyncProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    print('DEBUG SYNC: Memulai sinkronisasi data ke database server untuk Vessel ID: $vesselId...');
     bool allSuccess = true;
 
     try {
       // 1. Fetch pending adjustments
       final pending = await _db.getPendingAdjustments(vesselId);
       if (pending.isEmpty) {
+        print('DEBUG SYNC: Tidak ada data tertunda yang perlu disinkronisasi.');
         _isSyncing = false;
         notifyListeners();
         return true;
       }
 
+      print('DEBUG SYNC: Menemukan ${pending.length} data tertunda untuk disinkronisasi.');
+
       // 2. Submit sequentially
       for (final adj in pending) {
         try {
+          print('DEBUG SYNC: Mengirim data adjustment ID ${adj.id} (Item: ${adj.partName}, Qty: ${adj.qtyChange}) ke database server...');
           await _api.submitAdjustment(adj);
           await _db.markAdjustmentSynced(adj.id!);
+          print('DEBUG SYNC: [BERHASIL] Data adjustment ID ${adj.id} berhasil disinkronisasi ke database server.');
         } catch (e) {
           allSuccess = false;
           await _db.markAdjustmentFailed(adj.id!, e.toString());
+          print('DEBUG SYNC: [GAGAL] Data adjustment ID ${adj.id} gagal disinkronisasi. Error: $e');
         }
       }
 
@@ -320,6 +330,7 @@ class SyncProvider extends ChangeNotifier {
 
       // 5. If everything synced successfully, automatically download latest database state from server
       if (allSuccess) {
+        print('DEBUG SYNC: [BERHASIL TOTAL] Seluruh data berhasil disinkronisasi ke database server. Mengunduh data terbaru dari server...');
         final vessel = await _db.getCachedVessel(vesselId);
         if (vessel != null) {
           // Re-download latest inventory state
@@ -343,11 +354,15 @@ class SyncProvider extends ChangeNotifier {
           _inventory = freshItems;
           _mainComponents = mainComponents;
           _subComponents = subComponents;
+          print('DEBUG SYNC: Unduh data terbaru berhasil, workspace lokal diperbarui.');
         }
+      } else {
+        print('DEBUG SYNC: [SEBAGIAN GAGAL] Sinkronisasi selesai dengan beberapa kegagalan.');
       }
     } catch (e) {
       _errorMessage = 'Gagal selama sinkronisasi: ${e.toString()}';
       allSuccess = false;
+      print('DEBUG SYNC: [ERROR VITAL] Terjadi kesalahan fatal selama proses sinkronisasi: $e');
     } finally {
       _isSyncing = false;
       await loadAllPendingAdjustments();

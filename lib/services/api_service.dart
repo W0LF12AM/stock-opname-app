@@ -7,8 +7,9 @@ import '../models/inventory_item.dart';
 import '../models/adjustment.dart';
 
 class APIService {
+  //static const String baseUrl = "http://localhost/inventory_kapal/api";
   static const String baseUrl =
-      'https://sertifikasibag.com/inventory_kapal/api';
+      "https://sertifikasibag.com/inventory_kapal/api";
 
   static final APIService _instance = APIService._internal();
   factory APIService() => _instance;
@@ -102,12 +103,13 @@ class APIService {
 
   Future<List<Vessel>> fetchVessels() async {
     final url = Uri.parse('$baseUrl/vessels.php');
-
+    print('DEBUG API: GET request ke $url...');
     try {
       final response = await http
           .get(url, headers: await _getHeaders())
           .timeout(const Duration(seconds: 15));
 
+      print('DEBUG API: Response received (vessels). Status code: ${response.statusCode}');
       dynamic responseBody;
       try {
         responseBody = jsonDecode(response.body);
@@ -115,6 +117,7 @@ class APIService {
         final bodySnippet = response.body.length > 200
             ? response.body.substring(0, 200)
             : response.body;
+        print('DEBUG API: [ERROR] Gagal parse JSON vessels. Status: ${response.statusCode}, Body: $bodySnippet');
         throw FormatException(
           'Respon server bukan JSON valid (Status: ${response.statusCode}). Raw: $bodySnippet',
         );
@@ -134,27 +137,32 @@ class APIService {
           list = [];
         }
 
-        return list.map((item) => Vessel.fromJson(item)).toList();
+        final vesselsList = list.map((item) => Vessel.fromJson(item)).toList();
+        print('DEBUG API: [SUKSES] Berhasil fetch ${vesselsList.length} vessels.');
+        return vesselsList;
       } else {
-        throw HttpException(
-          responseBody['message'] ?? 'Failed to fetch vessels',
-        );
+        final errorMsg = responseBody['message'] ?? 'Failed to fetch vessels';
+        print('DEBUG API: [ERROR] Gagal fetch vessels. Message: $errorMsg');
+        throw HttpException(errorMsg);
       }
-    } on SocketException {
+    } on SocketException catch (e) {
+      print('DEBUG API: [ERROR] Jaringan terputus saat fetch vessels: $e');
       throw const SocketException('No Internet connection');
     } catch (e) {
+      print('DEBUG API: [ERROR] Terjadi kesalahan saat fetch vessels: $e');
       rethrow;
     }
   }
 
   Future<List<InventoryItem>> fetchInventory(int vesselId) async {
     final url = Uri.parse('$baseUrl/inventory.php?vessel_id=$vesselId');
-
+    print('DEBUG API: GET request ke $url...');
     try {
       final response = await http
           .get(url, headers: await _getHeaders())
           .timeout(const Duration(seconds: 8));
 
+      print('DEBUG API: Response received (inventory). Status code: ${response.statusCode}');
       dynamic responseBody;
       try {
         responseBody = jsonDecode(response.body);
@@ -162,6 +170,7 @@ class APIService {
         final bodySnippet = response.body.length > 200
             ? response.body.substring(0, 200)
             : response.body;
+        print('DEBUG API: [ERROR] Gagal parse JSON inventory. Status: ${response.statusCode}, Body: $bodySnippet');
         throw FormatException(
           'Respon server bukan JSON valid (Status: ${response.statusCode}). Raw: $bodySnippet',
         );
@@ -181,29 +190,34 @@ class APIService {
           list = [];
         }
 
-        return list
+        final inventoryList = list
             .map((item) => InventoryItem.fromJson(item, vesselId))
             .toList();
+        print('DEBUG API: [SUKSES] Berhasil fetch ${inventoryList.length} items untuk Vessel ID $vesselId.');
+        return inventoryList;
       } else {
-        throw HttpException(
-          responseBody['message'] ?? 'Failed to fetch inventory',
-        );
+        final errorMsg = responseBody['message'] ?? 'Failed to fetch inventory';
+        print('DEBUG API: [ERROR] Gagal fetch inventory. Message: $errorMsg');
+        throw HttpException(errorMsg);
       }
-    } on SocketException {
+    } on SocketException catch (e) {
+      print('DEBUG API: [ERROR] Jaringan terputus saat fetch inventory: $e');
       throw const SocketException('No Internet connection');
     } catch (e) {
+      print('DEBUG API: [ERROR] Terjadi kesalahan saat fetch inventory: $e');
       rethrow;
     }
   }
 
   Future<Map<String, dynamic>> fetchComponents(int vesselId) async {
     final url = Uri.parse('$baseUrl/components.php?vessel_id=$vesselId');
-
+    print('DEBUG API: GET request ke $url...');
     try {
       final response = await http
           .get(url, headers: await _getHeaders())
           .timeout(const Duration(seconds: 8));
 
+      print('DEBUG API: Response received (components). Status code: ${response.statusCode}');
       dynamic responseBody;
       try {
         responseBody = jsonDecode(response.body);
@@ -211,6 +225,7 @@ class APIService {
         final bodySnippet = response.body.length > 200
             ? response.body.substring(0, 200)
             : response.body;
+        print('DEBUG API: [ERROR] Gagal parse JSON components. Status: ${response.statusCode}, Body: $bodySnippet');
         throw FormatException(
           'Respon server bukan JSON valid (Status: ${response.statusCode}). Raw: $bodySnippet',
         );
@@ -218,16 +233,19 @@ class APIService {
 
       if (response.statusCode == 200) {
         final rawData = responseBody['data'];
-        // Defensive: ensure we return a Map
-        return (rawData is Map<String, dynamic>) ? rawData : {};
+        final mapData = (rawData is Map<String, dynamic>) ? rawData : <String, dynamic>{};
+        print('DEBUG API: [SUKSES] Berhasil fetch components untuk Vessel ID $vesselId.');
+        return mapData;
       } else {
-        throw HttpException(
-          responseBody['message'] ?? 'Failed to fetch components',
-        );
+        final errorMsg = responseBody['message'] ?? 'Failed to fetch components';
+        print('DEBUG API: [ERROR] Gagal fetch components. Message: $errorMsg');
+        throw HttpException(errorMsg);
       }
-    } on SocketException {
+    } on SocketException catch (e) {
+      print('DEBUG API: [ERROR] Jaringan terputus saat fetch components: $e');
       throw const SocketException('No Internet connection');
     } catch (e) {
+      print('DEBUG API: [ERROR] Terjadi kesalahan saat fetch components: $e');
       rethrow;
     }
   }
@@ -268,14 +286,14 @@ class APIService {
     }
 
     try {
+      print('DEBUG API: POST request ke $url dengan body: ${jsonEncode(body)}');
       final response = await http
-          .post(
-            url,
-            headers: await _getHeaders(),
-            body: jsonEncode(body),
-          )
+          .post(url, headers: await _getHeaders(), body: jsonEncode(body))
           .timeout(const Duration(seconds: 15));
 
+      print(
+        'DEBUG API: Response received. Status code: ${response.statusCode}',
+      );
       dynamic responseBody;
       try {
         responseBody = jsonDecode(response.body);
@@ -283,6 +301,9 @@ class APIService {
         final bodySnippet = response.body.length > 200
             ? response.body.substring(0, 200)
             : response.body;
+        print(
+          'DEBUG API: [ERROR] Gagal parse JSON response. Status: ${response.statusCode}, Body snippet: $bodySnippet',
+        );
         throw FormatException(
           'Respon server bukan JSON valid (Status: ${response.statusCode}). Raw: $bodySnippet',
         );
@@ -290,13 +311,22 @@ class APIService {
 
       // create_item.php returns 201 Created on success, submit_adjustment returns 200 OK
       if (response.statusCode != 200 && response.statusCode != 201) {
-        throw HttpException(
-          responseBody['message'] ?? 'Failed to submit adjustment/item',
+        final errorMsg =
+            responseBody['message'] ?? 'Failed to submit adjustment/item';
+        print(
+          'DEBUG API: [ERROR] Request ditolak server. Status: ${response.statusCode}, Message: $errorMsg',
         );
+        throw HttpException(errorMsg);
       }
-    } on SocketException {
+
+      print(
+        'DEBUG API: [SUKSES] Submit berhasil. Message: ${responseBody['message']}',
+      );
+    } on SocketException catch (e) {
+      print('DEBUG API: [ERROR] Jaringan terputus (SocketException): $e');
       throw const SocketException('No Internet connection');
     } catch (e) {
+      print('DEBUG API: [ERROR] Terjadi kesalahan saat submit: $e');
       rethrow;
     }
   }

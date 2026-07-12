@@ -295,11 +295,14 @@ class DBService {
 
   Future<List<Adjustment>> getPendingAdjustments(int vesselId) async {
     final db = await database;
+    print('DEBUG DB: Query getPendingAdjustments untuk vesselId = $vesselId');
     final List<Map<String, dynamic>> maps = await db.query(
       'local_adjustments',
       where: 'vessel_id = ? AND is_synced = 0',
+      whereArgs: [vesselId],
       orderBy: 'created_at ASC',
     );
+    print('DEBUG DB: Ditemukan ${maps.length} pending adjustments untuk vessel $vesselId');
     return List.generate(maps.length, (i) => Adjustment.fromMap(maps[i]));
   }
 
