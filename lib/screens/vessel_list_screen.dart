@@ -463,11 +463,14 @@ class _VesselListScreenState extends State<VesselListScreen> {
 
     if (confirmed != true || !context.mounted) return;
 
-    // Step 2: Show non-dismissable loading dialog to prevent accidental touches (ANR trigger)
+    // Capture navigator reference BEFORE dialog is shown — context can go stale after showDialog()
+    final navigator = Navigator.of(context, rootNavigator: true);
+
+    // Step 2: Show non-dismissable loading dialog (not awaited, stays open during download)
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => PopScope(
+      builder: (dialogCtx) => PopScope(
         canPop: false,
         child: AnimatedBuilder(
           animation: sync,
@@ -485,12 +488,6 @@ class _VesselListScreenState extends State<VesselListScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Debug: prg="$progress", load=${sync.isLoading}, err=${sync.errorMessage ?? "none"}',
-                    style: const TextStyle(fontSize: 10, color: Colors.purple, fontFamily: 'monospace'),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
                   const Text(
                     'Mohon tunggu, jangan tutup aplikasi.',
                     textAlign: TextAlign.center,
@@ -504,14 +501,14 @@ class _VesselListScreenState extends State<VesselListScreen> {
       ),
     );
 
-    // Step 3: Run download
+    // Yield one frame so the dialog route is pushed onto the navigator stack
+    await WidgetsBinding.instance.endOfFrame;
+
+    // Step 3: Run download (dialog stays open during this)
     await sync.downloadVesselData(vessel);
 
-    // Step 4: Close loading dialog safely with a tiny delay to ensure transition completes
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (context.mounted) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
+    // Step 4: Close dialog using the pre-captured navigator — safe even if context is stale
+    navigator.pop();
 
     // Step 5: Show result
     if (!context.mounted) return;

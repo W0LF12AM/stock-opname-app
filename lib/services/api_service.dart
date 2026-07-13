@@ -30,6 +30,18 @@ class APIService {
     _cachedToken = null;
   }
 
+  // Warmup Database
+  Future<void> warmUpServer() async {
+    try {
+      final url = Uri.parse('$baseUrl/ping.php');
+      print('DEBUG API: Warmup database -> $url');
+      await http.get(url).timeout(const Duration(seconds: 20));
+      print('DEBUG API: Warmup berhasil anjaaay');
+    } catch (e) {
+      print('DEBUG API: Warmup gagal bwang: $e');
+    }
+  }
+
   // Create common headers
   Future<Map<String, String>> _getHeaders({bool requireAuth = true}) async {
     final Map<String, String> headers = {
@@ -80,7 +92,10 @@ class APIService {
         ); // for offline verification
         await prefs.setString('full_name', data['user']['full_name']);
         await prefs.setString('role', data['user']['role']);
-        await prefs.setInt('user_id', data['user']['id']);
+        // 'id' bisa datang sebagai String atau int dari server PHP
+        final rawId = data['user']['id'];
+        final userId = rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
+        await prefs.setInt('user_id', userId);
 
         return data;
       } else {
@@ -109,7 +124,9 @@ class APIService {
           .get(url, headers: await _getHeaders())
           .timeout(const Duration(seconds: 15));
 
-      print('DEBUG API: Response received (vessels). Status code: ${response.statusCode}');
+      print(
+        'DEBUG API: Response received (vessels). Status code: ${response.statusCode}',
+      );
       dynamic responseBody;
       try {
         responseBody = jsonDecode(response.body);
@@ -117,7 +134,9 @@ class APIService {
         final bodySnippet = response.body.length > 200
             ? response.body.substring(0, 200)
             : response.body;
-        print('DEBUG API: [ERROR] Gagal parse JSON vessels. Status: ${response.statusCode}, Body: $bodySnippet');
+        print(
+          'DEBUG API: [ERROR] Gagal parse JSON vessels. Status: ${response.statusCode}, Body: $bodySnippet',
+        );
         throw FormatException(
           'Respon server bukan JSON valid (Status: ${response.statusCode}). Raw: $bodySnippet',
         );
@@ -138,7 +157,9 @@ class APIService {
         }
 
         final vesselsList = list.map((item) => Vessel.fromJson(item)).toList();
-        print('DEBUG API: [SUKSES] Berhasil fetch ${vesselsList.length} vessels.');
+        print(
+          'DEBUG API: [SUKSES] Berhasil fetch ${vesselsList.length} vessels.',
+        );
         return vesselsList;
       } else {
         final errorMsg = responseBody['message'] ?? 'Failed to fetch vessels';
@@ -162,7 +183,9 @@ class APIService {
           .get(url, headers: await _getHeaders())
           .timeout(const Duration(seconds: 8));
 
-      print('DEBUG API: Response received (inventory). Status code: ${response.statusCode}');
+      print(
+        'DEBUG API: Response received (inventory). Status code: ${response.statusCode}',
+      );
       dynamic responseBody;
       try {
         responseBody = jsonDecode(response.body);
@@ -170,7 +193,9 @@ class APIService {
         final bodySnippet = response.body.length > 200
             ? response.body.substring(0, 200)
             : response.body;
-        print('DEBUG API: [ERROR] Gagal parse JSON inventory. Status: ${response.statusCode}, Body: $bodySnippet');
+        print(
+          'DEBUG API: [ERROR] Gagal parse JSON inventory. Status: ${response.statusCode}, Body: $bodySnippet',
+        );
         throw FormatException(
           'Respon server bukan JSON valid (Status: ${response.statusCode}). Raw: $bodySnippet',
         );
@@ -193,7 +218,9 @@ class APIService {
         final inventoryList = list
             .map((item) => InventoryItem.fromJson(item, vesselId))
             .toList();
-        print('DEBUG API: [SUKSES] Berhasil fetch ${inventoryList.length} items untuk Vessel ID $vesselId.');
+        print(
+          'DEBUG API: [SUKSES] Berhasil fetch ${inventoryList.length} items untuk Vessel ID $vesselId.',
+        );
         return inventoryList;
       } else {
         final errorMsg = responseBody['message'] ?? 'Failed to fetch inventory';
@@ -217,7 +244,9 @@ class APIService {
           .get(url, headers: await _getHeaders())
           .timeout(const Duration(seconds: 8));
 
-      print('DEBUG API: Response received (components). Status code: ${response.statusCode}');
+      print(
+        'DEBUG API: Response received (components). Status code: ${response.statusCode}',
+      );
       dynamic responseBody;
       try {
         responseBody = jsonDecode(response.body);
@@ -225,7 +254,9 @@ class APIService {
         final bodySnippet = response.body.length > 200
             ? response.body.substring(0, 200)
             : response.body;
-        print('DEBUG API: [ERROR] Gagal parse JSON components. Status: ${response.statusCode}, Body: $bodySnippet');
+        print(
+          'DEBUG API: [ERROR] Gagal parse JSON components. Status: ${response.statusCode}, Body: $bodySnippet',
+        );
         throw FormatException(
           'Respon server bukan JSON valid (Status: ${response.statusCode}). Raw: $bodySnippet',
         );
@@ -233,11 +264,16 @@ class APIService {
 
       if (response.statusCode == 200) {
         final rawData = responseBody['data'];
-        final mapData = (rawData is Map<String, dynamic>) ? rawData : <String, dynamic>{};
-        print('DEBUG API: [SUKSES] Berhasil fetch components untuk Vessel ID $vesselId.');
+        final mapData = (rawData is Map<String, dynamic>)
+            ? rawData
+            : <String, dynamic>{};
+        print(
+          'DEBUG API: [SUKSES] Berhasil fetch components untuk Vessel ID $vesselId.',
+        );
         return mapData;
       } else {
-        final errorMsg = responseBody['message'] ?? 'Failed to fetch components';
+        final errorMsg =
+            responseBody['message'] ?? 'Failed to fetch components';
         print('DEBUG API: [ERROR] Gagal fetch components. Message: $errorMsg');
         throw HttpException(errorMsg);
       }

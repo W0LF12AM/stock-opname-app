@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:stock_opname_app/services/api_service.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
@@ -33,10 +34,15 @@ class _SplashScreenState extends State<SplashScreen>
 
   // --- Loading Dots Animation ---
   late Animation<double> _dotsAnimation;
+  
+  String _statusText = 'Memuat aplikasi...';
 
   @override
   void initState() {
     super.initState();
+    _initApp();
+
+
 
     // Logo: scale from 0.4 to 1.0 + fade in
     _logoController = AnimationController(
@@ -89,6 +95,21 @@ class _SplashScreenState extends State<SplashScreen>
     _runAnimationSequence();
   }
 
+      Future<void> _initApp() async {
+      setState(() => _statusText = "Menyiapkan koneksi....");
+
+      await Future.wait([
+        APIService().warmUpServer(),
+        Future.delayed(const Duration(seconds: 2)),
+      ]);
+
+      if (!mounted) return;
+
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+    }
+
   Future<void> _runAnimationSequence() async {
     // 1. Logo enters
     await _logoController.forward();
@@ -129,9 +150,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     if (!_initialized) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0D47A1),
-      );
+      return const Scaffold(backgroundColor: Color(0xFF0D47A1));
     }
     return Scaffold(
       body: Container(
@@ -284,10 +303,24 @@ class _SplashScreenState extends State<SplashScreen>
 
                   const Spacer(flex: 3),
 
-                  // --- Animated Loading Dots ---
+                  // --- Animated Loading Dots & Status Text ---
                   FadeTransition(
                     opacity: _titleOpacity,
-                    child: _AnimatedDots(animation: _dotsAnimation),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _AnimatedDots(animation: _dotsAnimation),
+                        const SizedBox(height: 16),
+                        Text(
+                          _statusText,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 48),

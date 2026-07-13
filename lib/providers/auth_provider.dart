@@ -48,7 +48,9 @@ class AuthProvider extends ChangeNotifier {
         _username = userData['user']['username'];
         _fullName = userData['user']['full_name'];
         _role = userData['user']['role'];
-        _userId = userData['user']['id'];
+        // 'id' bisa datang sebagai String atau int dari server PHP
+        final rawId = userData['user']['id'];
+        _userId = rawId is int ? rawId : int.tryParse(rawId.toString());
       } else {
         // Offline login
         final prefs = await SharedPreferences.getInstance();

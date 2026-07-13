@@ -188,15 +188,19 @@ class _CreateItemFormState extends State<CreateItemForm> {
                       // Main Component dropdown
                       DropdownButtonFormField<int>(
                         value: _selectedMainId,
+                        isExpanded: true,
                         decoration: const InputDecoration(
-                          labelText: 'Komponen Utama (Main Component) *',
+                          labelText: 'Komponen Utama *',
                           prefixIcon: Icon(Icons.category_outlined),
                         ),
                         items: [
                           ...sync.mainComponents.map((main) {
                             return DropdownMenuItem<int>(
                               value: main.id,
-                              child: Text(main.componentName),
+                              child: Text(
+                                main.componentName,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }),
                           const DropdownMenuItem<int>(
@@ -204,6 +208,7 @@ class _CreateItemFormState extends State<CreateItemForm> {
                             child: Text(
                               '[+] Tambah Komponen Utama Baru',
                               style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -217,7 +222,7 @@ class _CreateItemFormState extends State<CreateItemForm> {
                           setState(() {
                             _selectedMainId = val;
                             _isCreatingNewMain = (val == -1);
-                            _selectedSubId = null; // reset sub component
+                            _selectedSubId = null;
                             _isCreatingNewSub = false;
                             _newMainController.clear();
                             _newSubController.clear();
@@ -255,6 +260,7 @@ class _CreateItemFormState extends State<CreateItemForm> {
                         // Sub Component dropdown (only when main component is selected and not new)
                         DropdownButtonFormField<int>(
                           value: _selectedSubId,
+                          isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Sub Komponen (Opsional)',
                             prefixIcon: Icon(Icons.account_tree_outlined),
@@ -267,7 +273,10 @@ class _CreateItemFormState extends State<CreateItemForm> {
                                       .map((sub) {
                                     return DropdownMenuItem<int>(
                                       value: sub.id,
-                                      child: Text(sub.subComponentName),
+                                      child: Text(
+                                        sub.subComponentName,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     );
                                   }),
                                   const DropdownMenuItem<int>(
@@ -275,6 +284,7 @@ class _CreateItemFormState extends State<CreateItemForm> {
                                     child: Text(
                                       '[+] Tambah Sub Komponen Baru',
                                       style: TextStyle(color: Color(0xFF0D47A1), fontWeight: FontWeight.bold),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 ],
