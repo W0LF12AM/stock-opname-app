@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:stock_opname_app/screens/splash_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'providers/sync_provider.dart';
@@ -105,7 +106,8 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const AuthWrapper(),
+        home: //const AuthWrapper(),
+            SplashScreen(),
       ),
     );
   }
