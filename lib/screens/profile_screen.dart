@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:stock_opname_app/screens/login_screen.dart';
 import '../providers/auth_provider.dart';
 import '../providers/connectivity_provider.dart';
 
@@ -72,7 +73,10 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
@@ -151,13 +155,22 @@ class ProfileScreen extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.info_outline_rounded, color: Color(0xFF0D47A1)),
+                  leading: const Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFF0D47A1),
+                  ),
                   title: const Text('Versi Aplikasi'),
-                  trailing: const Text('1.0.0', style: TextStyle(color: Color(0xFF64748B))),
+                  trailing: const Text(
+                    '1.0.0',
+                    style: TextStyle(color: Color(0xFF64748B)),
+                  ),
                 ),
                 const Divider(height: 1, indent: 56),
                 ListTile(
-                  leading: const Icon(Icons.inventory_2_outlined, color: Color(0xFF0D47A1)),
+                  leading: const Icon(
+                    Icons.inventory_2_outlined,
+                    color: Color(0xFF0D47A1),
+                  ),
                   title: const Text('Stock Opname Kapal'),
                   subtitle: const Text('Sistem inventaris offline-first'),
                 ),
@@ -192,7 +205,9 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Keluar Aplikasi'),
-        content: const Text('Apakah Anda yakin ingin keluar? Sesi Anda akan dihapus.'),
+        content: const Text(
+          'Apakah Anda yakin ingin keluar? Sesi Anda akan dihapus.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -202,8 +217,14 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.pop(ctx);
               auth.logout();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC62828),
+            ),
             child: const Text('Keluar'),
           ),
         ],
