@@ -94,7 +94,9 @@ class APIService {
         await prefs.setString('role', data['user']['role']);
         // 'id' bisa datang sebagai String atau int dari server PHP
         final rawId = data['user']['id'];
-        final userId = rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
+        final userId = rawId is int
+            ? rawId
+            : int.tryParse(rawId.toString()) ?? 0;
         await prefs.setInt('user_id', userId);
 
         return data;
@@ -181,20 +183,24 @@ class APIService {
     try {
       final response = await http
           .get(url, headers: await _getHeaders())
-          .timeout(const Duration(seconds: 8));
+          .timeout(
+            const Duration(seconds: 30),
+          ); // Increased from 8s - vessel_id=1 can have many items
 
       print(
-        'DEBUG API: Response received (inventory). Status code: ${response.statusCode}',
+        'DEBUG API: Response received (inventory). Status code: ${response.statusCode}, Body length: ${response.body.length} bytes',
       );
       dynamic responseBody;
       try {
         responseBody = jsonDecode(response.body);
       } catch (_) {
-        final bodySnippet = response.body.length > 200
-            ? response.body.substring(0, 200)
-            : response.body;
+        final bodySnippet = response.body.isEmpty
+            ? '[EMPTY BODY - possible server crash or timeout]'
+            : (response.body.length > 500
+                  ? response.body.substring(0, 500)
+                  : response.body);
         print(
-          'DEBUG API: [ERROR] Gagal parse JSON inventory. Status: ${response.statusCode}, Body: $bodySnippet',
+          'DEBUG API: [ERROR] Gagal parse JSON inventory. Status: ${response.statusCode}, Body length: ${response.body.length}, Snippet: $bodySnippet',
         );
         throw FormatException(
           'Respon server bukan JSON valid (Status: ${response.statusCode}). Raw: $bodySnippet',
