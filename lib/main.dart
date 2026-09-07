@@ -4,8 +4,8 @@ import 'package:stock_opname_app/screens/splash_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'providers/sync_provider.dart';
-import 'screens/login_screen.dart';
-import 'screens/main_screen.dart';
+// import 'screens/login_screen.dart';
+// import 'screens/main_screen.dart';
 import 'services/db_service.dart';
 
 void main() async {
@@ -106,25 +106,24 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: //const AuthWrapper(),
-            SplashScreen(),
+        home: SplashScreen(),
       ),
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
+// class AuthWrapper extends StatelessWidget {
+//   const AuthWrapper({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    // Listen to changes in authentication state
-    final auth = context.watch<AuthProvider>();
+//   @override
+//   Widget build(BuildContext context) {
+//     // Listen to changes in authentication state
+//     final auth = context.watch<AuthProvider>();
 
-    if (auth.isAuthenticated) {
-      return const MainScreen();
-    } else {
-      return const LoginScreen();
-    }
-  }
-}
+//     if (auth.isAuthenticated) {
+//       return const MainScreen();
+//     } else {
+//       return const LoginScreen();
+//     }
+//   }
+// }

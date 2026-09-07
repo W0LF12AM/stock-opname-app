@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:stock_opname_app/screens/edit_item.dart';
 import '../providers/sync_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../models/vessel.dart';
@@ -7,6 +8,7 @@ import '../models/inventory_item.dart';
 import '../models/adjustment.dart';
 import 'create_item_form.dart';
 import 'sync_screen.dart';
+import 'edit_item.dart';
 
 class InventoryScreen extends StatefulWidget {
   final Vessel vessel;
@@ -43,11 +45,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
     // Filter list in memory
     final blendedList = sync.getBlendedInventory();
     final filteredList = blendedList.where((item) {
-      final matchesSearch = item.partName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (item.partNumber != null && item.partNumber!.toLowerCase().contains(_searchQuery.toLowerCase()));
-      final matchesMain = _selectedMainId == null || item.mainComponentId == _selectedMainId;
-      final matchesSub = _selectedSubId == null || item.subComponentId == _selectedSubId;
-      
+      final matchesSearch =
+          item.partName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          (item.partNumber != null &&
+              item.partNumber!.toLowerCase().contains(
+                _searchQuery.toLowerCase(),
+              ));
+      final matchesMain =
+          _selectedMainId == null || item.mainComponentId == _selectedMainId;
+      final matchesSub =
+          _selectedSubId == null || item.subComponentId == _selectedSubId;
+
       return matchesSearch && matchesMain && matchesSub;
     }).toList();
 
@@ -102,131 +110,169 @@ class _InventoryScreenState extends State<InventoryScreen> {
             child: Container(
               padding: const EdgeInsets.all(12),
               child: Column(
-              children: [
-                // Search field
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Cari Nama Barang / Part Number...',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded),
-                            onPressed: () {
-                              setState(() {
-                                _searchController.clear();
-                                _searchQuery = '';
-                              });
-                            },
-                          )
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                children: [
+                  // Search field
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Cari Nama Barang / Part Number...',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear_rounded),
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
                   ),
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val;
-                    });
-                  },
-                ),
-                const SizedBox(height: 8),
-                
-                // Component Dropdown Filters
-                Row(
-                  children: [
-                    // Main Component Filter
-                    Expanded(
-                      child: DropdownButtonFormField<int>(
-                        value: _selectedMainId,
-                        hint: const Text('Komponen Utama', style: TextStyle(fontSize: 12)),
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                        items: [
-                          const DropdownMenuItem<int>(
-                            value: null,
-                            child: Text('Semua Komponen', style: TextStyle(fontSize: 12)),
+                  const SizedBox(height: 8),
+
+                  // Component Dropdown Filters
+                  Row(
+                    children: [
+                      // Main Component Filter
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: _selectedMainId,
+                          hint: const Text(
+                            'Komponen Utama',
+                            style: TextStyle(fontSize: 12),
                           ),
-                          ...sync.mainComponents.map((main) {
-                            return DropdownMenuItem<int>(
-                              value: main.id,
-                              child: Text(main.componentName, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
-                            );
-                          }).toList(),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedMainId = val;
-                            _selectedSubId = null; // Reset sub when main changes
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    
-                    // Sub Component Filter
-                    Expanded(
-                      child: DropdownButtonFormField<int>(
-                        value: _selectedSubId,
-                        hint: const Text('Sub Komponen', style: TextStyle(fontSize: 12)),
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                        items: [
-                          const DropdownMenuItem<int>(
-                            value: null,
-                            child: Text('Semua Sub', style: TextStyle(fontSize: 12)),
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
                           ),
-                          ...sync.subComponents
-                              .where((sub) => _selectedMainId == null || sub.mainComponentId == _selectedMainId)
-                              .map((sub) {
-                            return DropdownMenuItem<int>(
-                              value: sub.id,
-                              child: Text(sub.subComponentName, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
-                            );
-                          }).toList(),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedSubId = val;
-                          });
-                        },
+                          items: [
+                            const DropdownMenuItem<int>(
+                              value: null,
+                              child: Text(
+                                'Semua Komponen',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            ...sync.mainComponents.map((main) {
+                              return DropdownMenuItem<int>(
+                                value: main.id,
+                                child: Text(
+                                  main.componentName,
+                                  style: const TextStyle(fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedMainId = val;
+                              _selectedSubId =
+                                  null; // Reset sub when main changes
+                            });
+                          },
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 8),
+
+                      // Sub Component Filter
+                      Expanded(
+                        child: DropdownButtonFormField<int>(
+                          value: _selectedSubId,
+                          hint: const Text(
+                            'Sub Komponen',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                          ),
+                          items: [
+                            const DropdownMenuItem<int>(
+                              value: null,
+                              child: Text(
+                                'Semua Sub',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                            ),
+                            ...sync.subComponents
+                                .where(
+                                  (sub) =>
+                                      _selectedMainId == null ||
+                                      sub.mainComponentId == _selectedMainId,
+                                )
+                                .map((sub) {
+                                  return DropdownMenuItem<int>(
+                                    value: sub.id,
+                                    child: Text(
+                                      sub.subComponentName,
+                                      style: const TextStyle(fontSize: 12),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  );
+                                })
+                                .toList(),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedSubId = val;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        
-        // Workspace list
+
+          // Workspace list
           Expanded(
             child: sync.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : filteredList.isEmpty
-                    ? _buildNoItemsState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        itemCount: filteredList.length,
-                        itemBuilder: (context, index) {
-                          final item = filteredList[index];
-                          
-                          // Check if this item is newly created (temp negative ID)
-                          final isNewItem = item.id < 0;
-                          // Check if this item has local adjustment
-                          final localAdj = isNewItem 
-                              ? sync.getAdjustmentForNewItem(item.id)
-                              : sync.getAdjustmentForItem(item.id);
+                ? _buildNoItemsState()
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: filteredList.length,
+                    itemBuilder: (context, index) {
+                      final item = filteredList[index];
 
-                          return _buildInventoryCard(context, item, isNewItem, localAdj, sync);
-                        },
-                      ),
+                      // Check if this item is newly created (temp negative ID)
+                      final isNewItem = item.id < 0;
+                      // Check if this item has local adjustment
+                      final localAdj = isNewItem
+                          ? sync.getAdjustmentForNewItem(item.id)
+                          : sync.getAdjustmentForItem(item.id);
+
+                      return _buildInventoryCard(
+                        context,
+                        item,
+                        isNewItem,
+                        localAdj,
+                        sync,
+                      );
+                    },
+                  ),
           ),
         ],
       ),
-      
+
       // Floating Action Button to create item (Green CTA style or Navy blue)
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -251,8 +297,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
     // Distinguish: truly empty (no inventory in DB) vs. filtered empty
     final sync = context.read<SyncProvider>();
     final isOnline = context.read<ConnectivityProvider>().isOnline;
-    final isTrulyEmpty = sync.inventory.isEmpty && _searchQuery.isEmpty &&
-        _selectedMainId == null && _selectedSubId == null;
+    final isTrulyEmpty =
+        sync.inventory.isEmpty &&
+        _searchQuery.isEmpty &&
+        _selectedMainId == null &&
+        _selectedSubId == null;
 
     if (isTrulyEmpty) {
       // Inventory was downloaded but is empty — likely stale download before the fix
@@ -263,7 +312,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                isOnline ? Icons.cloud_download_outlined : Icons.inventory_2_outlined,
+                isOnline
+                    ? Icons.cloud_download_outlined
+                    : Icons.inventory_2_outlined,
                 size: 72,
                 color: const Color(0xFF90A4AE),
               ),
@@ -284,13 +335,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
               ),
-              if (isOnline) ...[  
+              if (isOnline) ...[
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
-                  onPressed: () => _redownloadData(
-                    context,
-                    context.read<SyncProvider>(),
-                  ),
+                  onPressed: () =>
+                      _redownloadData(context, context.read<SyncProvider>()),
                   icon: const Icon(Icons.refresh_rounded),
                   label: const Text('Download Ulang Sekarang'),
                   style: ElevatedButton.styleFrom(
@@ -309,7 +358,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.search_off_rounded, size: 64, color: Color(0xFFCBD5E1)),
+          const Icon(
+            Icons.search_off_rounded,
+            size: 64,
+            color: Color(0xFFCBD5E1),
+          ),
           const SizedBox(height: 16),
           const Text(
             'Barang Tidak Ditemukan',
@@ -358,14 +411,23 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   const CircularProgressIndicator(),
                   const SizedBox(height: 20),
                   Text(
-                    progress.isNotEmpty ? progress : 'Mengunduh ulang data ${widget.vessel.vesselName}...',
+                    progress.isNotEmpty
+                        ? progress
+                        : 'Mengunduh ulang data ${widget.vessel.vesselName}...',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Debug: prg="$progress", load=${sync.isLoading}, err=${sync.errorMessage ?? "none"}',
-                    style: const TextStyle(fontSize: 10, color: Colors.purple, fontFamily: 'monospace'),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Colors.purple,
+                      fontFamily: 'monospace',
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
@@ -383,7 +445,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
 
     await sync.downloadVesselData(widget.vessel);
-    
+
     // Close loading dialog safely with a tiny delay to ensure transition completes
     await Future.delayed(const Duration(milliseconds: 300));
     if (context.mounted) {
@@ -406,14 +468,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildInventoryCard(
-    BuildContext context, 
-    InventoryItem item, 
-    bool isNewItem, 
-    Adjustment? adjustment, 
-    SyncProvider sync
+    BuildContext context,
+    InventoryItem item,
+    bool isNewItem,
+    Adjustment? adjustment,
+    SyncProvider sync,
   ) {
     final hasAdjustment = adjustment != null;
-    
+
     // Choose styling based on state
     Color cardBorderColor = Colors.transparent;
     Color badgeColor = const Color(0xFFF1F5F9);
@@ -438,14 +500,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
       elevation: 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
-        side: cardBorderColor != Colors.transparent 
+        side: cardBorderColor != Colors.transparent
             ? BorderSide(color: cardBorderColor, width: 1.5)
             : const BorderSide(color: Color(0xFFF1F5F9)),
       ),
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () => _openAdjustmentSheet(context, item, isNewItem, adjustment, sync),
+        onTap: () =>
+            _openAdjustmentSheet(context, item, isNewItem, adjustment, sync),
         child: Padding(
           padding: const EdgeInsets.all(12.0),
           child: Column(
@@ -468,7 +531,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   if (badgeText.isNotEmpty) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: badgeColor,
                         borderRadius: BorderRadius.circular(6),
@@ -482,11 +548,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         ),
                       ),
                     ),
-                  ]
+                  ],
                 ],
               ),
               const SizedBox(height: 4),
-              
+
               // Part Number
               Text(
                 'PN: ${item.partNumber ?? "-"}',
@@ -497,7 +563,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
               ),
               const SizedBox(height: 6),
-              
+
               // Component Hierarchy Tag
               Text(
                 '${item.mainName}${item.subName != null ? ' > ${item.subName}' : ''}',
@@ -508,7 +574,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
               ),
               const Divider(height: 16, color: Color(0xFFF1F5F9)),
-              
+
               // Bottom Row: Quantities and Price
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -516,9 +582,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   // Price
                   Text(
                     'Harga: Rp ${item.price.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF64748B),
+                    ),
                   ),
-                  
+
                   // Quantity details
                   Row(
                     children: [
@@ -542,20 +611,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: hasAdjustment ? const Color(0xFF2E7D32) : const Color(0xFF1E293B),
+                          color: hasAdjustment
+                              ? const Color(0xFF2E7D32)
+                              : const Color(0xFF1E293B),
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-              
+
               // Display remarks/notes if adjustment exists
               if (hasAdjustment && adjustment.keterangan.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(6),
@@ -563,7 +637,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.notes_rounded, size: 14, color: Color(0xFF94A3B8)),
+                      const Icon(
+                        Icons.notes_rounded,
+                        size: 14,
+                        color: Color(0xFF94A3B8),
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -579,7 +657,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ],
                   ),
                 ),
-              ]
+              ],
             ],
           ),
         ),
@@ -589,24 +667,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   // Bottom Sheet for Adjusting Items
   void _openAdjustmentSheet(
-    BuildContext context, 
-    InventoryItem item, 
-    bool isNewItem, 
-    Adjustment? adjustment, 
-    SyncProvider sync
+    BuildContext context,
+    InventoryItem item,
+    bool isNewItem,
+    Adjustment? adjustment,
+    SyncProvider sync,
   ) {
     final physicalQtyController = TextEditingController();
     final keteranganController = TextEditingController();
     final priceController = TextEditingController();
 
     // Prefill fields
-    final double initialSystemQty = isNewItem 
-        ? 0.0 
-        : (adjustment != null ? (adjustment.physicalQty - adjustment.qtyChange) : item.currentQty);
-    
-    physicalQtyController.text = (adjustment?.physicalQty ?? initialSystemQty).toStringAsRegExp();
+    final double initialSystemQty = isNewItem
+        ? 0.0
+        : (adjustment != null
+              ? (adjustment.physicalQty - adjustment.qtyChange)
+              : item.currentQty);
+
+    physicalQtyController.text = (adjustment?.physicalQty ?? initialSystemQty)
+        .toStringAsRegExp();
     keteranganController.text = adjustment?.keterangan ?? '';
-    priceController.text = (adjustment?.hargaSatuan ?? item.price).toStringAsFixed(0);
+    priceController.text = (adjustment?.hargaSatuan ?? item.price)
+        .toStringAsFixed(0);
 
     final formKey = GlobalKey<FormState>();
 
@@ -620,7 +702,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            double currentCount = double.tryParse(physicalQtyController.text) ?? 0.0;
+            double currentCount =
+                double.tryParse(physicalQtyController.text) ?? 0.0;
             double delta = currentCount - initialSystemQty;
 
             return Padding(
@@ -643,7 +726,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         children: [
                           const Text(
                             'Penyesuaian Stok',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.close_rounded),
@@ -652,29 +739,69 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // Item info summary
                       Text(
                         item.partName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0D47A1)),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Color(0xFF0D47A1),
+                        ),
                       ),
-                      if (item.partNumber != null && item.partNumber!.isNotEmpty)
-                        Text('Part Number: ${item.partNumber}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 13)),
+                      if (item.partNumber != null &&
+                          item.partNumber!.isNotEmpty)
+                        Text(
+                          'Part Number: ${item.partNumber}',
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 13,
+                          ),
+                        ),
                       Text(
                         'Komponen: ${item.mainName}${item.subName != null ? ' > ${item.subName}' : ''}',
-                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.edit_note_rounded),
+                        label: const Text('Edit Detail Sparepart'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0D47A1),
+                          side: const BorderSide(color: Color(0xFF90CAF9)),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditItem(
+                                item: item,
+                                isNewItem: isNewItem,
+                                existingAdj: adjustment,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       const SizedBox(height: 16),
 
                       // Input: Physical Quantity Counted
                       TextFormField(
                         controller: physicalQtyController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         decoration: InputDecoration(
                           labelText: 'Jumlah Fisik di Kapal',
                           suffixText: item.satuan,
-                          helperText: isNewItem 
-                              ? 'Item baru. Stok awal akan diatur.' 
+                          helperText: isNewItem
+                              ? 'Item baru. Stok awal akan diatur.'
                               : 'Stok Sistem: ${initialSystemQty.toStringAsRegExp()} ${item.satuan}',
                         ),
                         validator: (value) {
@@ -705,13 +832,21 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           decoration: BoxDecoration(
                             color: delta == 0
                                 ? const Color(0xFFF1F5F9)
-                                : (delta > 0 ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE)),
+                                : (delta > 0
+                                      ? const Color(0xFFE8F5E9)
+                                      : const Color(0xFFFFEBEE)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text('Selisih Penyesuaian:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                              const Text(
+                                'Selisih Penyesuaian:',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                               Text(
                                 '${delta >= 0 ? '+' : ''}${delta.toStringAsRegExp()} ${item.satuan}',
                                 style: TextStyle(
@@ -719,7 +854,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: delta == 0
                                       ? const Color(0xFF475569)
-                                      : (delta > 0 ? const Color(0xFF2E7D32) : const Color(0xFFC62828)),
+                                      : (delta > 0
+                                            ? const Color(0xFF2E7D32)
+                                            : const Color(0xFFC62828)),
                                 ),
                               ),
                             ],
@@ -736,8 +873,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           prefixText: 'Rp ',
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) return null;
-                          if (double.tryParse(value) == null) return 'Harus berupa angka';
+                          if (value == null || value.trim().isEmpty)
+                            return null;
+                          if (double.tryParse(value) == null)
+                            return 'Harus berupa angka';
                           return null;
                         },
                       ),
@@ -762,70 +901,119 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             ElevatedButton(
                               onPressed: () {
                                 Navigator.pop(context);
-                                sync.deleteAdjustment(adjustment.id!, widget.vessel.id).then((_) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Penyesuaian stok dibatalkan')),
-                                  );
-                                });
+                                sync
+                                    .deleteAdjustment(
+                                      adjustment.id!,
+                                      widget.vessel.id,
+                                    )
+                                    .then((_) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Penyesuaian stok dibatalkan',
+                                          ),
+                                        ),
+                                      );
+                                    });
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFC62828), // Red context CTA
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                backgroundColor: const Color(
+                                  0xFFC62828,
+                                ), // Red context CTA
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                               ),
                               child: const Icon(Icons.delete_outline_rounded),
                             ),
                             const SizedBox(width: 12),
                           ],
-                          
+
                           // Save Button
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
                                 if (!formKey.currentState!.validate()) return;
-                                
-                                final double physical = double.parse(physicalQtyController.text);
-                                final double price = double.tryParse(priceController.text) ?? item.price;
-                                
+
+                                final double physical = double.parse(
+                                  physicalQtyController.text,
+                                );
+                                final double price =
+                                    double.tryParse(priceController.text) ??
+                                    item.price;
+
                                 final newAdj = Adjustment(
-                                  id: adjustment?.id, // Keep local PK if editing
+                                  id: adjustment
+                                      ?.id, // Keep local PK if editing
                                   vesselId: widget.vessel.id,
                                   inventoryId: isNewItem ? null : item.id,
                                   isExisting: !isNewItem,
-                                  qtyChange: isNewItem ? physical : (physical - initialSystemQty),
+                                  qtyChange: isNewItem
+                                      ? physical
+                                      : (physical - initialSystemQty),
                                   physicalQty: physical,
                                   hargaSatuan: price,
                                   keterangan: keteranganController.text,
                                   partName: isNewItem ? item.partName : '',
-                                  partNumber: isNewItem ? item.partNumber : null,
+                                  partNumber: isNewItem
+                                      ? item.partNumber
+                                      : null,
                                   satuan: isNewItem ? item.satuan : 'PCS',
-                                  mainComponentId: isNewItem ? item.mainComponentId : 0,
-                                  subComponentId: isNewItem ? item.subComponentId : null,
+                                  mainComponentId: isNewItem
+                                      ? item.mainComponentId
+                                      : 0,
+                                  subComponentId: isNewItem
+                                      ? item.subComponentId
+                                      : null,
                                 );
-                                
-                                sync.saveAdjustment(newAdj).then((_) {
-                                  if (context.mounted) {
-                                    Navigator.pop(context); // Close the sheet only on success
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Penyesuaian berhasil disimpan lokal'),
-                                        backgroundColor: Color(0xFF2E7D32), // Green CTA
-                                      ),
-                                    );
-                                  }
-                                }).catchError((error) {
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Gagal menyimpan: $error'),
-                                        backgroundColor: const Color(0xFFC62828), // Red error
-                                      ),
-                                    );
-                                  }
-                                });
+
+                                sync
+                                    .saveAdjustment(newAdj)
+                                    .then((_) {
+                                      if (context.mounted) {
+                                        Navigator.pop(
+                                          context,
+                                        ); // Close the sheet only on success
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Penyesuaian berhasil disimpan lokal',
+                                            ),
+                                            backgroundColor: Color(
+                                              0xFF2E7D32,
+                                            ), // Green CTA
+                                          ),
+                                        );
+                                      }
+                                    })
+                                    .catchError((error) {
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              'Gagal menyimpan: $error',
+                                            ),
+                                            backgroundColor: const Color(
+                                              0xFFC62828,
+                                            ), // Red error
+                                          ),
+                                        );
+                                      }
+                                    });
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2E7D32), // Green CTA for saving
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                backgroundColor: const Color(
+                                  0xFF2E7D32,
+                                ), // Green CTA for saving
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                               ),
                               child: const Text('Simpan Penyesuaian'),
                             ),

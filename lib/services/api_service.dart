@@ -372,4 +372,52 @@ class APIService {
       rethrow;
     }
   }
+
+  // ==========================================
+  // EDIT ITEM API
+  // ==========================================
+  Future<void> editItem({
+    required int inventoryId,
+    required int vesselId,
+    required int mainComponentId,
+    int? subComponentId,
+    required String partName,
+    String? partNumber,
+    required String satuan,
+    required double price,
+  }) async {
+    final url = Uri.parse('$baseUrl/edit_item.php');
+    final body = <String, dynamic>{
+      'inventory_id': inventoryId,
+      'vessel_id': vesselId,
+      'main_component_id': mainComponentId,
+      'part_name': partName,
+      'part_number': partNumber,
+      'satuan': satuan,
+      'price': price,
+      if (subComponentId != null) 'sub_component_id': subComponentId,
+    };
+
+    try {
+      print(
+        "DEBUG API : POST edit_item.php -> $url, body: ${jsonEncode(body)}",
+      );
+      final response = await http
+          .post(url, headers: await _getHeaders(), body: jsonEncode(body))
+          .timeout(const Duration(seconds: 15));
+
+      final responseBody = jsonDecode(response.body);
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw HttpException(responseBody['message'] ?? 'Gagal edit item');
+      }
+      print(
+        'DEBUG API: [SUKSES] Edit item berhasil: ${responseBody['message']}',
+      );
+    } on SocketException {
+      throw SocketException("No Internet Connection");
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
