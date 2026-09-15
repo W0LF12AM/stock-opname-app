@@ -1,30 +1,34 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stock_opname_app/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('App smoke test: renders app and transitions to LoginScreen', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+
     await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify initial splash screen header
+    expect(find.text('Stock Opname'), findsOneWidget);
+
+    // Pump through logo & text animation
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 700));
+
+    // Pump through 1.5s sequence timer and 2.0s warmup delay
+    await tester.pump(const Duration(milliseconds: 1500));
+    await tester.pump(const Duration(seconds: 2));
+
+    // Allow page transition animation to complete
+    await tester.pumpAndSettle();
+
+    // Verify transition to LoginScreen
+    expect(find.text('STOCK OPNAME'), findsOneWidget);
+    expect(find.text('Masuk Akun'), findsOneWidget);
+    print('  ✓ [SUCCESS] MyApp smoke test: SplashScreen rendered and completed navigation to LoginScreen');
   });
 }
