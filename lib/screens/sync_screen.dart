@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/sync_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/vessel.dart';
 import '../models/adjustment.dart';
 import '../models/inventory_item.dart';
 import '../services/db_service.dart';
+import '../services/pdf_report_service.dart';
 
 class SyncScreen extends StatefulWidget {
   final Vessel vessel;
@@ -22,6 +24,23 @@ class _SyncScreenState extends State<SyncScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SyncProvider>().loadVesselWorkspace(widget.vessel.id);
     });
+  }
+
+  Future<void> _handleExportPdf(BuildContext context, SyncProvider sync) async {
+    final auth = context.read<AuthProvider>();
+    final inventory = await DBService().getInventory(widget.vessel.id);
+
+    if (!mounted) return;
+
+    await PdfReportService().previewReport(
+      context,
+      vessel: widget.vessel,
+      adjustments: sync.adjustments,
+      inventoryItems: inventory,
+      reporterName: auth.fullName ?? auth.username ?? 'Kru Kapal',
+      reporterRole: auth.role ?? 'Crew',
+      isApproved: false,
+    );
   }
 
   Future<void> _handleSync(BuildContext context, SyncProvider sync) async {
@@ -81,6 +100,14 @@ class _SyncScreenState extends State<SyncScreen> {
           backgroundColor: const Color(0xFFF8FAFC),
           appBar: AppBar(
             title: const Text('Tinjau & Sinkronisasi'),
+            actions: [
+              if (sync.adjustments.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.picture_as_pdf_rounded),
+                  tooltip: 'Cetak / Export PDF Berita Acara',
+                  onPressed: () => _handleExportPdf(context, sync),
+                ),
+            ],
           ),
           body: Column(
             children: [
@@ -99,9 +126,9 @@ class _SyncScreenState extends State<SyncScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isOnline 
-                          ? 'Koneksi tersedia: Siap melakukan sinkronisasi' 
-                          : 'Koneksi terputus: Sinkronisasi dinonaktifkan',
+                      isOnline
+                          ? 'Perangkat Terhubung ke Internet (Siap Sinkronisasi)'
+                          : 'Perangkat Offline (Data Disimpan Secara Lokal)',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -114,7 +141,7 @@ class _SyncScreenState extends State<SyncScreen> {
               
               // Pending list
               Expanded(
-                child: totalPending == 0
+                child: sync.adjustments.isEmpty
                     ? _buildAllSyncedState()
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
@@ -127,18 +154,20 @@ class _SyncScreenState extends State<SyncScreen> {
               ),
               
               // Bottom Action Bar
-              if (totalPending > 0)
+              if (sync.adjustments.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     boxShadow: [
-                      BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2)),
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 4,
+                        offset: Offset(0, -2),
+                      ),
                     ],
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                   ),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Summary info
@@ -150,13 +179,26 @@ class _SyncScreenState extends State<SyncScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF475569)),
                           ),
                           Text(
-                            '$pendingEdits Edit, $pendingNew Baru ($totalPending total)',
+                            '$pendingEdits Pengurangan, $pendingNew Baru ($totalPending total)',
                             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF0D47A1)),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       
+                      // Export PDF Button
+                      OutlinedButton.icon(
+                        onPressed: () => _handleExportPdf(context, sync),
+                        icon: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF0D47A1)),
+                        label: const Text('Cetak / Export PDF Berita Acara'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0D47A1),
+                          side: const BorderSide(color: Color(0xFF90CAF9)),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
                       // Sync Button (Green CTA)
                       ElevatedButton(
                         onPressed: () => _handleSync(context, sync),

@@ -297,33 +297,64 @@ class APIService {
   // ==========================================
 
   Future<void> submitAdjustment(Adjustment adj) async {
-    final Uri url;
-    final Map<String, dynamic> body;
+    Uri url;
+    Map<String, dynamic> body;
 
     if (adj.isExisting) {
       url = Uri.parse('$baseUrl/submit_adjustment.php');
       body = adj.toApiJson();
     } else {
-      url = Uri.parse('$baseUrl/create_item.php');
-      body = {
-        'vessel_id': adj.vesselId,
-        'part_name': adj.partName,
-        'part_number': adj.partNumber ?? '',
-        'satuan': adj.satuan,
-        'initial_qty': adj.physicalQty,
-        'price': adj.hargaSatuan,
-      };
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString('role');
 
-      if (adj.newMainComponent != null && adj.newMainComponent!.isNotEmpty) {
-        body['main_component'] = adj.newMainComponent;
+      if (role == 'crew') {
+        url = Uri.parse('$baseUrl/request_new_item.php');
+        
+        String remarks = adj.keterangan;
+        if (adj.newMainComponent != null && adj.newMainComponent!.isNotEmpty) {
+          remarks += ' (New Main Comp: ${adj.newMainComponent})';
+        }
+        if (adj.newSubComponent != null && adj.newSubComponent!.isNotEmpty) {
+          remarks += ' (New Sub Comp: ${adj.newSubComponent})';
+        }
+
+        body = {
+          'vessel_id': adj.vesselId,
+          'part_name': adj.partName,
+          'part_number': adj.partNumber ?? '',
+          'satuan': adj.satuan,
+          'initial_qty': adj.physicalQty,
+          'remarks': remarks,
+        };
+        
+        if (adj.mainComponentId != 0) {
+          body['main_component_id'] = adj.mainComponentId;
+        }
+        if (adj.subComponentId != null && adj.subComponentId != 0) {
+          body['sub_component_id'] = adj.subComponentId;
+        }
       } else {
-        body['main_component_id'] = adj.mainComponentId;
-      }
+        url = Uri.parse('$baseUrl/create_item.php');
+        body = {
+          'vessel_id': adj.vesselId,
+          'part_name': adj.partName,
+          'part_number': adj.partNumber ?? '',
+          'satuan': adj.satuan,
+          'initial_qty': adj.physicalQty,
+          'price': adj.hargaSatuan,
+        };
 
-      if (adj.newSubComponent != null && adj.newSubComponent!.isNotEmpty) {
-        body['sub_component'] = adj.newSubComponent;
-      } else if (adj.subComponentId != null && adj.subComponentId != 0) {
-        body['sub_component_id'] = adj.subComponentId;
+        if (adj.newMainComponent != null && adj.newMainComponent!.isNotEmpty) {
+          body['main_component'] = adj.newMainComponent;
+        } else {
+          body['main_component_id'] = adj.mainComponentId;
+        }
+
+        if (adj.newSubComponent != null && adj.newSubComponent!.isNotEmpty) {
+          body['sub_component'] = adj.newSubComponent;
+        } else if (adj.subComponentId != null && adj.subComponentId != 0) {
+          body['sub_component_id'] = adj.subComponentId;
+        }
       }
     }
 

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:stock_opname_app/screens/edit_item.dart';
 import '../providers/sync_provider.dart';
 import '../providers/connectivity_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/vessel.dart';
 import '../models/inventory_item.dart';
 import '../models/adjustment.dart';
 import 'create_item_form.dart';
 import 'sync_screen.dart';
-import 'edit_item.dart';
 
 class InventoryScreen extends StatefulWidget {
   final Vessel vessel;
@@ -577,16 +576,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
               // Bottom Row: Quantities and Price
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   // Price
-                  Text(
-                    'Harga: Rp ${item.price.toStringAsFixed(0)}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF64748B),
-                    ),
-                  ),
+                  // Text(
+                  //   'Harga: Rp ${item.price.toStringAsFixed(0)}',
+                  //   style: const TextStyle(
+                  //     fontSize: 12,
+                  //     color: Color(0xFF64748B),
+                  //   ),
+                  // ),
 
                   // Quantity details
                   Row(
@@ -706,6 +705,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 double.tryParse(physicalQtyController.text) ?? 0.0;
             double delta = currentCount - initialSystemQty;
 
+            final auth = context.read<AuthProvider>();
+            final isCrew = auth.role == 'crew' || auth.role == 'petugas';
+            final bool isDisabledForCrew = isCrew && !isNewItem && delta > 0;
+
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -765,31 +768,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           fontSize: 13,
                         ),
                       ),
-                      const SizedBox(height: 16),
-
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.edit_note_rounded),
-                        label: const Text('Edit Detail Sparepart'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF0D47A1),
-                          side: const BorderSide(color: Color(0xFF90CAF9)),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EditItem(
-                                item: item,
-                                isNewItem: isNewItem,
-                                existingAdj: adjustment,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
 
                       // Input: Physical Quantity Counted
                       TextFormField(
@@ -801,18 +780,22 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           labelText: 'Jumlah Fisik di Kapal',
                           suffixText: item.satuan,
                           helperText: isNewItem
-                              ? 'Item baru. Stok awal akan diatur.'
-                              : 'Stok Sistem: ${initialSystemQty.toStringAsRegExp()} ${item.satuan}',
+                              ? 'Item baru. Stok awal akan diajukan ke admin.'
+                              : 'Stok Sistem: ${initialSystemQty.toStringAsRegExp()} ${item.satuan} (Hanya Pengurangan)',
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Jumlah fisik wajib diisi';
                           }
-                          if (double.tryParse(value) == null) {
+                          final parsed = double.tryParse(value);
+                          if (parsed == null) {
                             return 'Harus berupa angka valid';
                           }
-                          if (double.parse(value) < 0) {
+                          if (parsed < 0) {
                             return 'Jumlah tidak boleh kurang dari 0';
+                          }
+                          if (isCrew && !isNewItem && parsed > initialSystemQty) {
+                            return 'Kru hanya boleh mengurangi stok (maks: ${initialSystemQty.toStringAsRegExp()} ${item.satuan})';
                           }
                           return null;
                         },
@@ -832,64 +815,99 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           decoration: BoxDecoration(
                             color: delta == 0
                                 ? const Color(0xFFF1F5F9)
-                                : (delta > 0
-                                      ? const Color(0xFFE8F5E9)
-                                      : const Color(0xFFFFEBEE)),
+                                : (delta < 0
+                                      ? const Color(0xFFFFEBEE)
+                                      : const Color(0xFFFFF3E0)),
                             borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: delta > 0
+                                  ? const Color(0xFFFFB74D)
+                                  : (delta < 0
+                                        ? const Color(0xFFFFCDD2)
+                                        : const Color(0xFFE2E8F0)),
+                            ),
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Selisih Penyesuaian:',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Selisih Penyesuaian:',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${delta >= 0 ? '+' : ''}${delta.toStringAsRegExp()} ${item.satuan}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: delta == 0
+                                          ? const Color(0xFF475569)
+                                          : (delta < 0
+                                                ? const Color(0xFFC62828)
+                                                : const Color(0xFFE65100)),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Text(
-                                '${delta >= 0 ? '+' : ''}${delta.toStringAsRegExp()} ${item.satuan}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: delta == 0
-                                      ? const Color(0xFF475569)
-                                      : (delta > 0
-                                            ? const Color(0xFF2E7D32)
-                                            : const Color(0xFFC62828)),
+                              if (isCrew && delta > 0) ...[
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Perhatian: Penambahan stok dilarang untuk kru kapal. Penambahan dilakukan oleh admin darat.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFFC62828),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                         ),
                       const SizedBox(height: 16),
 
-                      // Input: Unit Price
-                      TextFormField(
-                        controller: priceController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Harga Satuan (Rupiah)',
-                          prefixText: 'Rp ',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty)
+                      if (!isCrew) ...[
+                        // Input: Unit Price
+                        TextFormField(
+                          controller: priceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Harga Satuan (Rupiah)',
+                            prefixText: 'Rp ',
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty)
+                              return null;
+                            if (double.tryParse(value) == null) {
+                              return 'Harus berupa angka';
+                            }
                             return null;
-                          if (double.tryParse(value) == null)
-                            return 'Harus berupa angka';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // Input: Remarks / Keterangan (e.g. why changed)
                       TextFormField(
                         controller: keteranganController,
                         maxLines: 2,
                         decoration: const InputDecoration(
-                          labelText: 'Keterangan (Contoh: Barang Rusak/Hilang)',
-                          hintText: 'Tulis alasan penyesuaian stok di sini...',
+                          labelText: 'Keterangan Alasan Pemakaian (Wajib)',
+                          hintText:
+                              'Contoh: Pemakaian rutin overhaul Aux Engine...',
+                          prefixIcon: Icon(Icons.notes_rounded),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Keterangan alasan wajib diisi untuk permohonan approval';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 24),
 
@@ -934,79 +952,86 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           // Save Button
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: () {
-                                if (!formKey.currentState!.validate()) return;
+                              onPressed: isDisabledForCrew
+                                  ? null
+                                  : () {
+                                      if (!formKey.currentState!.validate())
+                                        return;
 
-                                final double physical = double.parse(
-                                  physicalQtyController.text,
-                                );
-                                final double price =
-                                    double.tryParse(priceController.text) ??
-                                    item.price;
+                                      final double physical = double.parse(
+                                        physicalQtyController.text,
+                                      );
+                                      final double price =
+                                          double.tryParse(
+                                            priceController.text,
+                                          ) ??
+                                          item.price;
 
-                                final newAdj = Adjustment(
-                                  id: adjustment
-                                      ?.id, // Keep local PK if editing
-                                  vesselId: widget.vessel.id,
-                                  inventoryId: isNewItem ? null : item.id,
-                                  isExisting: !isNewItem,
-                                  qtyChange: isNewItem
-                                      ? physical
-                                      : (physical - initialSystemQty),
-                                  physicalQty: physical,
-                                  hargaSatuan: price,
-                                  keterangan: keteranganController.text,
-                                  partName: isNewItem ? item.partName : '',
-                                  partNumber: isNewItem
-                                      ? item.partNumber
-                                      : null,
-                                  satuan: isNewItem ? item.satuan : 'PCS',
-                                  mainComponentId: isNewItem
-                                      ? item.mainComponentId
-                                      : 0,
-                                  subComponentId: isNewItem
-                                      ? item.subComponentId
-                                      : null,
-                                );
+                                      final newAdj = Adjustment(
+                                        id: adjustment
+                                            ?.id, // Keep local PK if editing
+                                        vesselId: widget.vessel.id,
+                                        inventoryId: isNewItem ? null : item.id,
+                                        isExisting: !isNewItem,
+                                        qtyChange: isNewItem
+                                            ? physical
+                                            : (physical - initialSystemQty),
+                                        physicalQty: physical,
+                                        hargaSatuan: price,
+                                        keterangan: keteranganController.text,
+                                        partName: isNewItem
+                                            ? item.partName
+                                            : '',
+                                        partNumber: isNewItem
+                                            ? item.partNumber
+                                            : null,
+                                        satuan: isNewItem ? item.satuan : 'PCS',
+                                        mainComponentId: isNewItem
+                                            ? item.mainComponentId
+                                            : 0,
+                                        subComponentId: isNewItem
+                                            ? item.subComponentId
+                                            : null,
+                                      );
 
-                                sync
-                                    .saveAdjustment(newAdj)
-                                    .then((_) {
-                                      if (context.mounted) {
-                                        Navigator.pop(
-                                          context,
-                                        ); // Close the sheet only on success
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Penyesuaian berhasil disimpan lokal',
-                                            ),
-                                            backgroundColor: Color(
-                                              0xFF2E7D32,
-                                            ), // Green CTA
-                                          ),
-                                        );
-                                      }
-                                    })
-                                    .catchError((error) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Gagal menyimpan: $error',
-                                            ),
-                                            backgroundColor: const Color(
-                                              0xFFC62828,
-                                            ), // Red error
-                                          ),
-                                        );
-                                      }
-                                    });
-                              },
+                                      sync
+                                          .saveAdjustment(newAdj)
+                                          .then((_) {
+                                            if (context.mounted) {
+                                              Navigator.pop(
+                                                context,
+                                              ); // Close the sheet only on success
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Penyesuaian berhasil disimpan lokal',
+                                                  ),
+                                                  backgroundColor: Color(
+                                                    0xFF2E7D32,
+                                                  ), // Green CTA
+                                                ),
+                                              );
+                                            }
+                                          })
+                                          .catchError((error) {
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Gagal menyimpan: $error',
+                                                  ),
+                                                  backgroundColor: const Color(
+                                                    0xFFC62828,
+                                                  ), // Red error
+                                                ),
+                                              );
+                                            }
+                                          });
+                                    },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(
                                   0xFF2E7D32,

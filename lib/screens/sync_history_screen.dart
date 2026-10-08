@@ -5,6 +5,9 @@ import '../providers/connectivity_provider.dart';
 import '../providers/sync_provider.dart';
 import '../models/adjustment.dart';
 import '../models/vessel.dart';
+import '../providers/auth_provider.dart';
+import '../services/db_service.dart';
+import '../services/pdf_report_service.dart';
 import 'sync_screen.dart';
 
 class SyncHistoryScreen extends StatelessWidget {
@@ -216,27 +219,58 @@ class SyncHistoryScreen extends StatelessWidget {
                 ),
               ),
 
-            if (isOnline && vessel != null) ...[
+            if (vessel != null) ...[
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    final sync = context.read<SyncProvider>();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SyncScreen(vessel: vessel),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final auth = context.read<AuthProvider>();
+                        final inventory = await DBService().getInventory(vessel.id);
+                        if (!context.mounted) return;
+                        await PdfReportService().previewReport(
+                          context,
+                          vessel: vessel,
+                          adjustments: adjustments,
+                          inventoryItems: inventory,
+                          reporterName: auth.fullName ?? auth.username ?? 'Kru Kapal',
+                          reporterRole: auth.role ?? 'Crew',
+                          isApproved: false,
+                        );
+                      },
+                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                      label: const Text('Export PDF'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF0D47A1),
+                        side: const BorderSide(color: Color(0xFF90CAF9)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                       ),
-                    ).then((_) => sync.loadAllPendingAdjustments());
-                  },
-                  icon: const Icon(Icons.sync_rounded, size: 16),
-                  label: const Text('Sync Sekarang'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2E7D32),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
                   ),
-                ),
+                  if (isOnline) ...[
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          final sync = context.read<SyncProvider>();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SyncScreen(vessel: vessel),
+                            ),
+                          ).then((_) => sync.loadAllPendingAdjustments());
+                        },
+                        icon: const Icon(Icons.sync_rounded, size: 16),
+                        label: const Text('Sync Sekarang'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2E7D32),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ],

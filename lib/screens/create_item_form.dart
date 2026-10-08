@@ -388,10 +388,16 @@ class _CreateItemFormState extends State<CreateItemForm> {
                         controller: _keteranganController,
                         maxLines: 2,
                         decoration: const InputDecoration(
-                          labelText: 'Keterangan Tambahan',
+                          labelText: 'Keterangan Asal-Usul Item (Wajib)',
                           prefixIcon: Icon(Icons.notes_rounded),
-                          hintText: 'Misal: Ditemukan di laci darurat...',
+                          hintText: 'Misal: Beli darurat di pelabuhan / Ditemukan di palka...',
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Keterangan asal-usul item baru wajib diisi untuk permohonan approval';
+                          }
+                          return null;
+                        },
                       ),
                     ],
                   ),
