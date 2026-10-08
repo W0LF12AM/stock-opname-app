@@ -473,6 +473,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
     Adjustment? adjustment,
     SyncProvider sync,
   ) {
+    final auth = context.read<AuthProvider>();
+    final isCrew = auth.role == 'crew';
     final hasAdjustment = adjustment != null;
 
     // Choose styling based on state
@@ -578,14 +580,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // Price
-                  // Text(
-                  //   'Harga: Rp ${item.price.toStringAsFixed(0)}',
-                  //   style: const TextStyle(
-                  //     fontSize: 12,
-                  //     color: Color(0xFF64748B),
-                  //   ),
-                  // ),
+                  //Price
+                  if (!isCrew)
+                    Text(
+                      'Harga: Rp ${item.price.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
 
                   // Quantity details
                   Row(
@@ -794,7 +797,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           if (parsed < 0) {
                             return 'Jumlah tidak boleh kurang dari 0';
                           }
-                          if (isCrew && !isNewItem && parsed > initialSystemQty) {
+                          if (!isNewItem && parsed > initialSystemQty) {
                             return 'Kru hanya boleh mengurangi stok (maks: ${initialSystemQty.toStringAsRegExp()} ${item.satuan})';
                           }
                           return null;
@@ -855,7 +858,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                   ),
                                 ],
                               ),
-                              if (isCrew && delta > 0) ...[
+                              if (delta > 0) ...[
                                 const SizedBox(height: 4),
                                 const Text(
                                   'Perhatian: Penambahan stok dilarang untuk kru kapal. Penambahan dilakukan oleh admin darat.',
@@ -871,26 +874,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         ),
                       const SizedBox(height: 16),
 
-                      if (!isCrew) ...[
-                        // Input: Unit Price
-                        TextFormField(
-                          controller: priceController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Harga Satuan (Rupiah)',
-                            prefixText: 'Rp ',
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty)
-                              return null;
-                            if (double.tryParse(value) == null) {
-                              return 'Harus berupa angka';
-                            }
-                            return null;
-                          },
+                      // Input: Unit Price
+                      TextFormField(
+                        controller: priceController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Harga Satuan (Rupiah)',
+                          prefixText: 'Rp ',
                         ),
-                        const SizedBox(height: 16),
-                      ],
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty)
+                            return null;
+                          if (double.tryParse(value) == null) {
+                            return 'Harus berupa angka';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
 
                       // Input: Remarks / Keterangan (e.g. why changed)
                       TextFormField(
